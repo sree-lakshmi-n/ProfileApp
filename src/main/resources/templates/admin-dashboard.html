@@ -168,9 +168,6 @@
         <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
         <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
         
-        <h2>Profile Field Management</h2>
-        <p>Configure dynamic profile fields for different user roles:</p>
-        
         <table class="fields-table">
             <thead>
                 <tr>
@@ -200,7 +197,6 @@
                               class="required-no">No</span>
                     </td>
                     <td>
-                        <!-- Edit button -->
                         <a th:href="@{/admin/fields/edit/{id}(id=${field.id})}" 
                            class="btn btn-primary">Edit</a>
                         <!-- Delete button with data attributes -->
@@ -218,17 +214,6 @@
         
         <div th:if="${#lists.isEmpty(fields)}" class="empty-state">
             <p>No field definitions found.</p>
-        </div>
-        
-        <div style="margin-top: 20px;">
-            <h3>Admin Privileges</h3>
-            <p>You have full access to the system.</p>
-            <ul>
-                <li>Manage all users</li>
-                <li>Configure system settings</li>
-                <li>View all reports</li>
-                <li>Access audit logs</li>
-            </ul>
         </div>
     </div>
 

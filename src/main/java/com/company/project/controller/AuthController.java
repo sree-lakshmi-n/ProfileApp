@@ -1,6 +1,7 @@
 package com.company.project.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import com.company.project.model.ProfileFieldDef;
 import com.company.project.repository.ProfileFieldDefRepository;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 @Controller
@@ -59,7 +61,13 @@ public class AuthController {
         
         // Fetch all field definitions
         List<ProfileFieldDef> fieldDefinitions = profileFieldDefRepository.findAll();
-        model.addAttribute("fields", fieldDefinitions);
+        Comparator<ProfileFieldDef> comparator = Comparator
+            .comparing(ProfileFieldDef::getTargetRole)
+            .thenComparing(ProfileFieldDef::getId);
+        List<ProfileFieldDef> sortedFields = fieldDefinitions.stream()
+            .sorted(comparator)
+            .toList();
+        model.addAttribute("fields", sortedFields);
         
         return "admin-dashboard";
     }
