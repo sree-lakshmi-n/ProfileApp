@@ -3,7 +3,10 @@ package com.company.project.controller;
 import com.company.project.model.ProfileFieldDef;
 import com.company.project.repository.FieldOptionRepository;
 import com.company.project.repository.ProfileFieldDefRepository;
+import com.company.project.repository.UserProfileValueRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -63,4 +66,21 @@ public class FieldController {
         redirectAttributes.addFlashAttribute("success", "Field updated successfully!");
         return "redirect:/admin/dashboard";
     }
+    // Add this method to your existing FieldController class
+@DeleteMapping("/{id}")
+@ResponseBody
+public ResponseEntity<String> deleteFieldAjax(@PathVariable Long id) {
+    try {
+        ProfileFieldDef field = profileFieldDefRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Field not found"));
+        
+        String fieldName = field.getFieldName();
+        profileFieldDefRepository.deleteById(id);
+        
+        return ResponseEntity.ok("Field '" + fieldName + "' deleted successfully!");
+        
+    } catch (Exception e) {
+        return ResponseEntity.status(500).body("Error: " + e.getMessage());
+    }
+}
 }
