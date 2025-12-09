@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .header {
+            background-color: #dc3545;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+        }
+        .logout-btn {
+            background-color: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            float: right;
+        }
+        .content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .fields-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .fields-table th, .fields-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .fields-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .fields-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .btn {
+            padding: 5px 10px;
+            text-decoration: none;
+            border-radius: 3px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .type-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        .required-yes {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .required-no {
+            color: #6c757d;
+        }
+        .role-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .role-moderator {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .role-standard {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .alert-error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Admin Dashboard</h1>
+        <p>Welcome, <span th:text="${username}"></span>!</p>
+        <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+    
+    <div class="content">
+        <!-- Success Message -->
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        
+        <!-- Error Message -->
+        <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+        
+        <h2>Profile Field Management</h2>
+        <p>Configure dynamic profile fields for different user roles:</p>
+        
+        <table class="fields-table">
+            <thead>
+                <tr>
+                    <th>Field Name</th>
+                    <th>Type</th>
+                    <th>Target Role</th>
+                    <th>Required</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="field : ${fields}">
+                    <td th:text="${field.fieldName}">Field Name</td>
+                    <td>
+                        <span class="type-badge" th:text="${field.fieldType}">Type</span>
+                    </td>
+                    <td>
+                        <span th:if="${field.targetRole == 'MODERATOR'}" 
+                              class="role-badge role-moderator">Moderator</span>
+                        <span th:if="${field.targetRole == 'STANDARD'}" 
+                              class="role-badge role-standard">Standard</span>
+                    </td>
+                    <td>
+                        <span th:if="${field.isRequired}" 
+                              class="required-yes">Yes</span>
+                        <span th:unless="${field.isRequired}" 
+                              class="required-no">No</span>
+                    </td>
+                    <td>
+                        <!-- Edit button with link to edit page -->
+                        <a th:href="@{/admin/fields/edit/{id}(id=${field.id})}" 
+                           class="btn btn-primary">Edit</a>
+                        <button class="btn btn-danger" 
+                            th:onclick="|confirmDelete(${field.id})|">Delete</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div th:if="${#lists.isEmpty(fields)}" style="text-align: center; padding: 40px;">
+            <p>No field definitions found.</p>
+        </div>
+    </div>
+
+    <script>
+        function confirmDelete(fieldId) {
+            if (confirm('Are you sure you want to delete this field? This will remove it from all user profiles.')) {
+                alert('Delete functionality coming soon! For now, use Edit to modify fields.');
+            }
+        }
+    </script>
+</body>
+</html>

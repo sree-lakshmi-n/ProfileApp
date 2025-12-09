@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Field</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .header {
+            background-color: #dc3545;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+        }
+        .nav-btn {
+            background-color: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            float: right;
+            margin-left: 10px;
+        }
+        .content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #495057;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .form-control:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+        .btn {
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        .alert-info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+        .field-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+        }
+        .field-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Edit Field</h1>
+        <a href="/admin/dashboard" class="nav-btn">← Back to Dashboard</a>
+        <a href="/logout" class="nav-btn">Logout</a>
+    </div>
+    
+    <div class="content">
+        <!-- Field Info -->
+        <div class="field-info">
+            <p><strong>Field ID:</strong> <span th:text="${field.id}"></span></p>
+            <p><strong>Note:</strong> Changes will affect all users with this role.</p>
+        </div>
+        
+        <form th:action="@{/admin/fields/update/{id}(id=${field.id})}" 
+              th:object="${field}" method="post">
+            
+            <div class="form-group">
+                <label for="fieldName">Field Name *</label>
+                <input type="text" id="fieldName" th:field="*{fieldName}" 
+                       class="form-control" required 
+                       placeholder="e.g., Full Name, Email, Department">
+            </div>
+            
+            <div class="form-group">
+                <label for="fieldType">Field Type *</label>
+                <select id="fieldType" th:field="*{fieldType}" class="form-control" required>
+                    <option value="">Select a field type</option>
+                    <option th:each="type : ${fieldTypes}" 
+                            th:value="${type}" 
+                            th:text="${type}"
+                            th:selected="${field.fieldType == type}">
+                    </option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="targetRole">Target Role *</label>
+                <select id="targetRole" th:field="*{targetRole}" class="form-control" required>
+                    <option value="">Select a role</option>
+                    <option th:each="role : ${targetRoles}" 
+                            th:value="${role}" 
+                            th:text="${role}"
+                            th:selected="${field.targetRole == role}">
+                    </option>
+                </select>
+                <small style="color: #6c757d; display: block; margin-top: 5px;">
+                    Select which user role this field applies to
+                </small>
+            </div>
+            
+            <div class="form-group">
+                <label>Required Field</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="isRequired" th:field="*{isRequired}">
+                    <label for="isRequired" style="font-weight: normal;">
+                        Yes, this field is required for users
+                    </label>
+                </div>
+                <small style="color: #6c757d; display: block; margin-top: 5px;">
+                    If checked, users must fill this field in their profile
+                </small>
+            </div>
+            
+            <div class="alert alert-info">
+                <strong>Warning:</strong> Changing field type may cause data conversion issues 
+                for existing user values. For example, changing from TEXT to NUMBER may 
+                cause problems if users have entered non-numeric values.
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a href="/admin/dashboard" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

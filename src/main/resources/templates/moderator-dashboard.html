@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Moderator Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .header {
+            background-color: #ffc107;
+            color: #000;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+        }
+        .logout-btn {
+            background-color: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            float: right;
+        }
+        .content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .profile-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
+        }
+        .profile-fields {
+            margin-top: 20px;
+        }
+        .field-row {
+            display: flex;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .field-label {
+            font-weight: bold;
+            width: 200px;
+            color: #495057;
+        }
+        .field-value {
+            flex: 1;
+            color: #212529;
+        }
+        .field-required {
+            color: #dc3545;
+            margin-left: 5px;
+        }
+        .edit-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .type-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            background-color: #e9ecef;
+            color: #495057;
+            margin-left: 10px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            background-color: #ffc107;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Moderator Dashboard</h1>
+        <p>Welcome, <span th:text="${username}"></span>!</p>
+        <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+    
+    <div class="content">
+        <div class="profile-section">
+            <h2>Your Profile</h2>
+            
+            <div class="profile-fields">
+                <div th:each="field : ${fields}" class="field-row">
+                    <div class="field-label">
+                        <span th:text="${field.fieldName}"></span>
+                        <span th:if="${field.isRequired}" class="field-required">*</span>
+                    </div>
+                    <div class="field-value">
+                        <span class="type-badge" th:text="${field.fieldType}"></span>
+                    </div>
+                </div>
+                
+                <div th:if="${#lists.isEmpty(fields)}" class="empty-state">
+                    <p>No profile fields have been configured for your role yet.</p>
+                    <p>Contact your administrator to set up profile fields.</p>
+                </div>
+            </div>
+            
+            <button class="edit-btn">Edit Profile</button>
+        </div>
+    </div>
+</body>
+</html>
