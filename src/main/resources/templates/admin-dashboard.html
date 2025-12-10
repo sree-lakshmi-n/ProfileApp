@@ -75,6 +75,16 @@
             background-color: #dc3545;
             color: white;
         }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -151,6 +161,15 @@
             padding: 40px;
             color: #6c757d;
         }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .section-header h2 {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -167,6 +186,12 @@
         <!-- Original Success/Error Messages (for page reload) -->
         <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
         <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+        
+        <div class="section-header">
+            <h2>Profile Field Management</h2>
+            <a href="/admin/fields/add" class="btn btn-success">+ Add New Field</a>
+        </div>
+        <p>Configure dynamic profile fields for different user roles:</p>
         
         <table class="fields-table">
             <thead>
@@ -197,6 +222,7 @@
                               class="required-no">No</span>
                     </td>
                     <td>
+                        <!-- Edit button -->
                         <a th:href="@{/admin/fields/edit/{id}(id=${field.id})}" 
                            class="btn btn-primary">Edit</a>
                         <!-- Delete button with data attributes -->
@@ -213,7 +239,7 @@
         </table>
         
         <div th:if="${#lists.isEmpty(fields)}" class="empty-state">
-            <p>No field definitions found.</p>
+            <p>No field definitions found. <a href="/admin/fields/add">Create your first field</a></p>
         </div>
     </div>
 
@@ -235,11 +261,16 @@
         });
         
         function deleteField(fieldId, fieldName, fieldRole, deleteButton) {
+            // Show confirmation dialog
             const message = `Are you sure you want to delete the field "${fieldName}" for ${fieldRole} role?\n\n` +
+                           `This will permanently delete:\n` +
+                           `• The field definition\n` +
+                           `• All user values for this field\n` +
+                           `• Any dropdown options\n\n` +
                            `This action cannot be undone!`;
             
             if (!confirm(message)) {
-                return; 
+                return; // User cancelled
             }
             
             // Save original button text and disable button
@@ -324,7 +355,7 @@
                 const emptyState = document.createElement('tr');
                 emptyState.innerHTML = `
                     <td colspan="5" class="empty-state">
-                        <p>No field definitions found.</p>
+                        <p>No field definitions found. <a href="/admin/fields/add">Create your first field</a></p>
                     </td>
                 `;
                 tableBody.appendChild(emptyState);

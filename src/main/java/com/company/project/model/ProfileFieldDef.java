@@ -1,4 +1,4 @@
-// ProfileFieldDef.java - add this constructor
+// ProfileFieldDef.java - ensure it has default constructor and proper annotations
 package com.company.project.model;
 
 import jakarta.persistence.*;
@@ -11,23 +11,23 @@ public class ProfileFieldDef {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "field_name")
+    @Column(name = "field_name", nullable = false, length = 100)
     private String fieldName;
     
-    @Column(name = "field_type")
+    @Column(name = "field_type", nullable = false, length = 20)
     private String fieldType;
     
-    @Column(name = "target_role")
+    @Column(name = "target_role", nullable = false, length = 20)
     private String targetRole;
     
     @Column(name = "is_required")
-    private Boolean isRequired;
+    private Boolean isRequired = false;
     
-    // Default constructor for Spring
+    // Default constructor for Spring form binding
     public ProfileFieldDef() {
     }
     
-    // Constructor with parameters
+    // Constructor for convenience
     public ProfileFieldDef(String fieldName, String fieldType, String targetRole, Boolean isRequired) {
         this.fieldName = fieldName;
         this.fieldType = fieldType;
@@ -35,7 +35,7 @@ public class ProfileFieldDef {
         this.isRequired = isRequired;
     }
     
-    // Getters and Setters
+    // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
