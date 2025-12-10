@@ -127,7 +127,6 @@
     </div>
     
     <div class="content">
-        <!-- Field Info -->
         <div class="field-info">
             <p><strong>Field ID:</strong> <span th:text="${field.id}"></span></p>
             <p><strong>Note:</strong> Changes will affect all users with this role.</p>
@@ -165,9 +164,6 @@
                             th:selected="${field.targetRole == role}">
                     </option>
                 </select>
-                <small style="color: #6c757d; display: block; margin-top: 5px;">
-                    Select which user role this field applies to
-                </small>
             </div>
             
             <div class="form-group">
@@ -178,9 +174,6 @@
                         Yes, this field is required for users
                     </label>
                 </div>
-                <small style="color: #6c757d; display: block; margin-top: 5px;">
-                    If checked, users must fill this field in their profile
-                </small>
             </div>
             
             <div class="alert alert-info">

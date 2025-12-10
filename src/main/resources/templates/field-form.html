@@ -64,6 +64,9 @@
             align-items: center;
             gap: 10px;
         }
+        .checkbox-group label{
+            margin-bottom: 0;
+        }
         .checkbox-group input[type="checkbox"] {
             width: 18px;
             height: 18px;
@@ -138,14 +141,6 @@
         <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
         <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
         
-        <!-- Form Instructions -->
-        <div class="field-info">
-            <p><strong>Instructions:</strong></p>
-            <p>1. Field names must be unique within each role</p>
-            <p>2. Required fields must be filled by users</p>
-            <p>3. Changes affect all users with the target role</p>
-        </div>
-        
         <!-- Form -->
         <form th:action="${isEdit} ? @{/admin/fields/update/{id}(id=${field.id})} : @{/admin/fields/save}" 
               th:object="${field}" method="post">
@@ -158,9 +153,6 @@
                        class="form-control" required 
                        placeholder="e.g., Full Name, Email, Department"
                        th:attr="maxlength=100">
-                <small style="color: #6c757d; display: block; margin-top: 5px;">
-                    Enter a descriptive name for this field
-                </small>
             </div>
             
             <div class="form-group">
@@ -175,9 +167,6 @@
                             th:selected="${field.fieldType == type}">
                     </option>
                 </select>
-                <small style="color: #6c757d; display: block; margin-top: 5px;">
-                    Choose the data type for this field
-                </small>
             </div>
             
             <div class="form-group">
@@ -192,25 +181,15 @@
                             th:selected="${field.targetRole == role}">
                     </option>
                 </select>
-                <small style="color: #6c757d; display: block; margin-top: 5px;">
-                    Select which user role this field applies to
-                </small>
             </div>
             
             <div class="form-group">
-                <label>Required Field</label>
                 <div class="checkbox-group">
+                    <label>Required Field</label>
                     <input type="checkbox" id="isRequired" th:field="*{isRequired}">
-                    <label for="isRequired" style="font-weight: normal;">
-                        Yes, users must fill this field
-                    </label>
                 </div>
-                <small style="color: #6c757d; display: block; margin-top: 5px;">
-                    If checked, this field will be mandatory for users
-                </small>
             </div>
             
-            <!-- Field type specific notes -->
             <div th:if="${field.fieldType == 'DROPDOWN'}" class="field-info" style="background-color: #e8f4fd;">
                 <p><strong>Note for Dropdown fields:</strong></p>
                 <p>After saving this field, you can add dropdown options by editing the field.</p>
