@@ -116,7 +116,60 @@
                         <span th:if="${field.isRequired}" class="field-required">*</span>
                     </div>
                     <div class="field-value">
-                        <span class="type-badge" th:text="${field.fieldType}"></span>
+                           <!-- <span class="type-badge" th:text="${field.fieldType}"></span> -->
+                           <div th:switch="${field.fieldType}">
+                            <input th:case="'TEXT'" type="text"
+                                th:name="${'field_' + field.fieldName}"
+                                th:id="${'field_' + field.fieldName}"
+                                th:attrappend="required=${field.isRequired}? 'required' : null"
+                                placeholder="Enter text" />
+
+                            <input th:case="'NUMBER'" type="number"
+                                th:name="${'field_' + field.fieldName}"
+                                th:id="${'field_' + field.fieldName}"
+                                th:attrappend="required=${field.isRequired}? 'required' : null"
+                                placeholder="Enter number" />
+
+                            <input th:case="'EMAIL'" type="email"
+                                th:name="${'field_' + field.fieldName}"
+                                th:id="${'field_' + field.fieldName}"
+                                th:attrappend="required=${field.isRequired}? 'required' : null"
+                                placeholder="name@example.com" />
+
+                            <input th:case="'PHONE'" type="tel"
+                                th:name="${'field_' + field.fieldName}"
+                                th:id="${'field_' + field.fieldName}"
+                                th:attrappend="required=${field.isRequired}? 'required' : null"
+                                placeholder="Enter phone number" />
+
+                            <input th:case="'DATE'" type="date"
+                                th:name="${'field_' + field.fieldName}"
+                                th:id="${'field_' + field.fieldName}"
+                                th:attrappend="required=${field.isRequired}? 'required' : null" />
+
+                            <select th:case="'DROPDOWN'"
+                                 th:name="${'field_' + field.fieldName}"
+                                 th:id="${'field_' + field.fieldName}"
+                                 th:attrappend="required=${field.isRequired}? 'required' : null">
+                                <option value="" disabled selected>Select an option</option>
+                                <option th:each="opt : ${field.options}"
+                                     th:value="${opt.optionValue}"
+                                     th:text="${opt.displayLabel}"></option>
+                            </select>
+
+                            <textarea th:case="'TEXTAREA'"
+                                   th:name="${'field_' + field.fieldName}"
+                                   th:id="${'field_' + field.fieldName}"
+                                   th:attrappend="required=${field.isRequired}? 'required' : null"
+                                   rows="3"
+                                   placeholder="Enter text"></textarea>
+
+                            <input th:case="'BOOLEAN'" type="checkbox"
+                                th:name="${'field_' + field.fieldName}"
+                                th:id="${'field_' + field.fieldName}" />
+
+                            <span th:case="*">Unsupported field type</span>
+                           </div>
                     </div>
                 </div>
                 
@@ -126,7 +179,7 @@
                 </div>
             </div>
             
-            <button class="edit-btn">Edit Profile</button>
+            <!-- <button class="edit-btn">Save</button> -->
         </div>
     </div>
 </body>

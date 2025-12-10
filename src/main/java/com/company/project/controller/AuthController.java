@@ -10,6 +10,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import com.company.project.model.ProfileFieldDef;
+import com.company.project.model.ProfileFieldVM;
+import com.company.project.model.FieldOption;
+import com.company.project.repository.FieldOptionRepository;
 import com.company.project.repository.ProfileFieldDefRepository;
 import java.util.Collection;
 import java.util.Comparator;
@@ -20,6 +23,9 @@ public class AuthController {
     
     @Autowired
     private ProfileFieldDefRepository profileFieldDefRepository;
+    
+    @Autowired
+    private FieldOptionRepository fieldOptionRepository;
     
     @GetMapping("/login")
     public String loginPage() {
@@ -79,9 +85,16 @@ public class AuthController {
         model.addAttribute("role", "MODERATOR");
         
         // Fetch only MODERATOR fields
-        List<ProfileFieldDef> moderatorFields = 
+        List<ProfileFieldDef> moderatorFields =
             profileFieldDefRepository.findByTargetRole("MODERATOR");
-        model.addAttribute("fields", moderatorFields);
+        List<ProfileFieldVM> vmList = moderatorFields.stream()
+            .map(f -> new ProfileFieldVM(
+                f.getId(), f.getFieldName(), f.getFieldType(),
+                f.getIsRequired(), f.getTargetRole(),
+                fieldOptionRepository.findByFieldDefId(f.getId())
+            ))
+            .toList();
+        model.addAttribute("fields", vmList);
         
         return "moderator-dashboard";
     }
@@ -93,9 +106,16 @@ public class AuthController {
         model.addAttribute("role", "STANDARD");
         
         // Fetch only STANDARD fields
-        List<ProfileFieldDef> standardFields = 
+        List<ProfileFieldDef> standardFields =
             profileFieldDefRepository.findByTargetRole("STANDARD");
-        model.addAttribute("fields", standardFields);
+        List<ProfileFieldVM> vmList = standardFields.stream()
+            .map(f -> new ProfileFieldVM(
+                f.getId(), f.getFieldName(), f.getFieldType(),
+                f.getIsRequired(), f.getTargetRole(),
+                fieldOptionRepository.findByFieldDefId(f.getId())
+            ))
+            .toList();
+        model.addAttribute("fields", vmList);
         
         return "standard-dashboard";
     }
