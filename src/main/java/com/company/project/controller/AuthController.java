@@ -1,7 +1,6 @@
 package com.company.project.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -11,9 +10,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import com.company.project.model.ProfileFieldDef;
 import com.company.project.model.ProfileFieldVM;
-import com.company.project.model.FieldOption;
 import com.company.project.repository.FieldOptionRepository;
 import com.company.project.repository.ProfileFieldDefRepository;
+import com.company.project.repository.UserProfileValueRepository;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -26,6 +25,9 @@ public class AuthController {
     
     @Autowired
     private FieldOptionRepository fieldOptionRepository;
+    
+    @Autowired
+    private UserProfileValueRepository userProfileValueRepository;
     
     @GetMapping("/login")
     public String loginPage() {
@@ -95,6 +97,19 @@ public class AuthController {
             ))
             .toList();
         model.addAttribute("fields", vmList);
+
+        // Load existing values for the logged-in user and expose as a map {fieldId -> value}
+        com.company.project.model.User currentUser =
+            (com.company.project.model.User) auth.getPrincipal();
+        Long userId = currentUser.getId();
+        java.util.Map<Long, String> values = new java.util.HashMap<>();
+        // Using repository directly to fetch all values
+        java.util.List<com.company.project.model.UserProfileValue> rows =
+            userProfileValueRepository.findByUserId(userId);
+        for (var row : rows) {
+            values.put(row.getFieldDefId(), row.getFieldValue());
+        }
+        model.addAttribute("values", values);
         
         return "moderator-dashboard";
     }
@@ -116,6 +131,18 @@ public class AuthController {
             ))
             .toList();
         model.addAttribute("fields", vmList);
+
+        // Load existing values for the logged-in user and expose as a map {fieldId -> value}
+        com.company.project.model.User currentUser =
+            (com.company.project.model.User) auth.getPrincipal();
+        Long userId = currentUser.getId();
+        java.util.Map<Long, String> values = new java.util.HashMap<>();
+        java.util.List<com.company.project.model.UserProfileValue> rows =
+            userProfileValueRepository.findByUserId(userId);
+        for (var row : rows) {
+            values.put(row.getFieldDefId(), row.getFieldValue());
+        }
+        model.addAttribute("values", values);
         
         return "standard-dashboard";
     }
