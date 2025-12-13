@@ -1,6 +1,8 @@
 // ProfileFieldDef.java - ensure it has default constructor and proper annotations
 package com.company.project.model;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -22,9 +24,17 @@ public class ProfileFieldDef {
     
     @Column(name = "is_required")
     private Boolean isRequired = false;
+
+    @Column(name = "version", nullable = false)
+    private Integer version = 1;
+
+    @Column(name = "last_updated_at")
+    private LocalDateTime lastUpdatedAt;
     
     // Default constructor for Spring form binding
     public ProfileFieldDef() {
+        this.version = 1;
+        this.lastUpdatedAt = LocalDateTime.now();
     }
     
     // Constructor for convenience
@@ -33,8 +43,16 @@ public class ProfileFieldDef {
         this.fieldType = fieldType;
         this.targetRole = targetRole;
         this.isRequired = isRequired;
+        this.version = 1;
+        this.lastUpdatedAt = LocalDateTime.now();
     }
     
+    @PreUpdate
+    public void preUpdate() {
+        this.version = this.version + 1;
+        this.lastUpdatedAt = LocalDateTime.now();
+    }
+
     // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -50,4 +68,11 @@ public class ProfileFieldDef {
     
     public Boolean getIsRequired() { return isRequired; }
     public void setIsRequired(Boolean isRequired) { this.isRequired = isRequired; }
+
+    public Integer getVersion() { return version; }
+    public void setVersion(Integer version) { this.version = version; }
+
+    public LocalDateTime getLastUpdatedAt() { return lastUpdatedAt; }
+    public void setLastUpdatedAt(LocalDateTime lastUpdatedAt) { this.lastUpdatedAt = lastUpdatedAt; }
+
 }

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title th:text="${isEdit} ? 'Edit Field' : 'Add New Field'"></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -34,98 +35,24 @@
             padding: 30px;
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
         }
-        .form-group {
-            margin-bottom: 20px;
+        .options-panel {
+            display: none;
         }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #495057;
-        }
-        .form-control {
-            width: 100%;
+        .option-row {
+            margin-bottom: 10px;
             padding: 10px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        .form-control:focus {
-            border-color: #80bdff;
-            outline: 0;
-            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
-        }
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .checkbox-group label{
-            margin-bottom: 0;
-        }
-        .checkbox-group input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-        }
-        .btn {
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .btn-primary {
-            background-color: #007bff;
-            color: white;
-        }
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-        .form-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #dee2e6;
-        }
-        .alert {
-            padding: 15px;
-            margin-bottom: 20px;
-            border: 1px solid transparent;
-            border-radius: 4px;
-        }
-        .alert-success {
-            color: #155724;
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-        }
-        .alert-error {
-            color: #721c24;
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-        }
-        .field-info {
             background-color: #f8f9fa;
-            padding: 15px;
             border-radius: 4px;
-            margin-bottom: 20px;
         }
-        .required-star {
-            color: #dc3545;
+        .btn-remove-option {
+            margin-top: 28px;
         }
-        select.form-control {
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            background-size: 16px;
-            padding-right: 40px;
+        .form-check-input {
+            width: 20px;
+            height: 20px;
         }
     </style>
 </head>
@@ -139,27 +66,28 @@
     <div class="content">
         <!-- Messages -->
         <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
-        <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
         
         <!-- Form -->
         <form th:action="${isEdit} ? @{/admin/fields/update/{id}(id=${field.id})} : @{/admin/fields/save}" 
-              th:object="${field}" method="post">
+              method="post" id="fieldForm">
             
-            <div class="form-group">
-                <label for="fieldName">
-                    Field Name <span class="required-star">*</span>
+            <div class="mb-3">
+                <label for="fieldName" class="form-label">
+                    Field Name <span class="text-danger">*</span>
                 </label>
-                <input type="text" id="fieldName" th:field="*{fieldName}" 
+                <input type="text" id="fieldName" name="fieldName" 
                        class="form-control" required 
                        placeholder="e.g., Full Name, Email, Department"
-                       th:attr="maxlength=100">
+                       th:value="${field.fieldName}">
             </div>
             
-            <div class="form-group">
-                <label for="fieldType">
-                    Field Type <span class="required-star">*</span>
+            <div class="mb-3">
+                <label for="fieldType" class="form-label">
+                    Field Type <span class="text-danger">*</span>
                 </label>
-                <select id="fieldType" th:field="*{fieldType}" class="form-control" required>
+                <select id="fieldType" name="fieldType" class="form-control" required
+                        onchange="toggleOptionsPanel()">
                     <option value="">Select a field type</option>
                     <option th:each="type : ${fieldTypes}" 
                             th:value="${type}" 
@@ -169,11 +97,11 @@
                 </select>
             </div>
             
-            <div class="form-group">
-                <label for="targetRole">
-                    Target Role <span class="required-star">*</span>
+            <div class="mb-3">
+                <label for="targetRole" class="form-label">
+                    Target Role <span class="text-danger">*</span>
                 </label>
-                <select id="targetRole" th:field="*{targetRole}" class="form-control" required>
+                <select id="targetRole" name="targetRole" class="form-control" required>
                     <option value="">Select a role</option>
                     <option th:each="role : ${targetRoles}" 
                             th:value="${role}" 
@@ -183,25 +111,186 @@
                 </select>
             </div>
             
-            <div class="form-group">
-                <div class="checkbox-group">
-                    <label>Required Field</label>
-                    <input type="checkbox" id="isRequired" th:field="*{isRequired}">
+            <div class="mb-3">
+                <div class="form-check">
+                    <input type="checkbox" id="isRequired" name="isRequired"
+                           class="form-check-input" th:checked="${field.isRequired}">
+                    <label for="isRequired" class="form-check-label">
+                        Required Field
+                    </label>
                 </div>
             </div>
             
-            <div th:if="${field.fieldType == 'DROPDOWN'}" class="field-info" style="background-color: #e8f4fd;">
-                <p><strong>Note for Dropdown fields:</strong></p>
-                <p>After saving this field, you can add dropdown options by editing the field.</p>
+            <!-- Options Panel for DROPDOWN type -->
+            <div id="optionsPanel" class="options-panel mb-3">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Dropdown Options</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="optionsContainer">
+                            <!-- Existing options will be loaded here -->
+                            <div th:each="option, stat : ${options}" class="option-row">
+                                <div class="row">
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control" 
+                                               th:name="optionValues[]"
+                                               th:value="${option.optionValue}"
+                                               placeholder="Option Value" required>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <input type="text" class="form-control" 
+                                               th:name="displayLabels[]"
+                                               th:value="${option.displayLabel}"
+                                               placeholder="Display Label" required>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-danger btn-sm btn-remove-option" 
+        onclick="removeOption(this)">
+    Remove
+</button>
+                                        <input type="hidden" th:name="deleteOptionIds[]" 
+                                               th:value="${option.id}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary mt-2" onclick="addOption()">
+                            + Add Option
+                        </button>
+                        <p class="text-muted mt-2 mb-0">
+                            <small>Note: Option Value is stored in database, Display Label is shown to users</small>
+                        </p>
+                    </div>
+                </div>
             </div>
             
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary" th:text="${isEdit} ? 'Update Field' : 'Create Field'">
+            <div class="form-actions mt-4">
+                <button type="submit" class="btn btn-primary" 
+                        th:text="${isEdit} ? 'Update Field' : 'Create Field'">
                     Save
                 </button>
                 <a href="/admin/dashboard" class="btn btn-secondary">Cancel</a>
             </div>
         </form>
     </div>
+
+    <script>
+    // Toggle options panel based on field type
+    function toggleOptionsPanel() {
+        const fieldType = document.getElementById('fieldType').value;
+        const optionsPanel = document.getElementById('optionsPanel');
+        const optionInputs = document.querySelectorAll('input[name="optionValues[]"], input[name="displayLabels[]"]');
+        
+        if (fieldType === 'DROPDOWN') {
+            optionsPanel.style.display = 'block';
+            // Ensure at least one option exists
+            if (document.querySelectorAll('.option-row').length === 0) {
+                addOption();
+            }
+            // Enable inputs
+            optionInputs.forEach(input => {
+                input.removeAttribute('disabled');
+                input.required = true;
+            });
+        } else {
+            optionsPanel.style.display = 'none';
+            // Disable inputs completely
+            optionInputs.forEach(input => {
+                input.setAttribute('disabled', 'disabled');
+                input.required = false;
+            });
+        }
+    }
+    
+    // Add new option row
+    function addOption() {
+        const container = document.getElementById('optionsContainer');
+        const row = document.createElement('div');
+        row.className = 'option-row mb-2';
+        row.innerHTML = `
+            <div class="row">
+                <div class="col-md-5">
+                    <input type="text" class="form-control" name="optionValues[]" 
+                           placeholder="Option Value">
+                </div>
+                <div class="col-md-5">
+                    <input type="text" class="form-control" name="displayLabels[]" 
+                           placeholder="Display Label">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger btn-sm btn-remove-option" 
+                            onclick="removeOption(this)">
+                        Remove
+                    </button>
+                </div>
+            </div>
+        `;
+        container.appendChild(row);
+        
+        // Set initial disabled state
+        const fieldType = document.getElementById('fieldType').value;
+        if (fieldType !== 'DROPDOWN') {
+            row.querySelectorAll('input').forEach(input => {
+                input.setAttribute('disabled', 'disabled');
+                input.required = false;
+            });
+        }
+    }
+    
+    // Remove option row
+    function removeOption(button) {
+        const row = button.closest('.option-row');
+        row.remove();
+    }
+    
+    // Check field type on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleOptionsPanel();
+    });
+    
+    // Form validation - disable option inputs before submission if not DROPDOWN
+    document.getElementById('fieldForm').addEventListener('submit', function(e) {
+        const fieldType = document.getElementById('fieldType').value;
+        const targetRole = document.getElementById('targetRole').value;
+        
+        // Basic validation
+        if (!fieldType || !targetRole) {
+            e.preventDefault();
+            alert('Please fill all required fields');
+            return false;
+        }
+        
+        // Handle option inputs based on field type
+        if (fieldType !== 'DROPDOWN') {
+            const optionInputs = document.querySelectorAll('input[name="optionValues[]"], input[name="displayLabels[]"]');
+            optionInputs.forEach(input => {
+                input.setAttribute('disabled', 'disabled');
+                input.required = false;
+            });
+        } else {
+            // Validate dropdown options
+            const options = document.querySelectorAll('input[name="optionValues[]"]');
+            if (options.length === 0) {
+                e.preventDefault();
+                alert('Please add at least one option for the dropdown');
+                return false;
+            }
+            
+            // Validate option values are not empty
+            for (let option of options) {
+                if (!option.value.trim()) {
+                    e.preventDefault();
+                    alert('Option values cannot be empty');
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    });
+</script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
