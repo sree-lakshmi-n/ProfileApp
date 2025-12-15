@@ -19,9 +19,7 @@ public class DataInitializer implements CommandLineRunner {
     
     @Override
     public void run(String... args) throws Exception {
-        // Check if users already exist
         if (userRepository.count() == 0) {
-            // Create users with properly encoded passwords
             User admin = new User(
                 "admin@example.com",
                 passwordEncoder.encode("password123"),
@@ -43,7 +41,6 @@ public class DataInitializer implements CommandLineRunner {
                 Role.STANDARD
             );
             
-            // Save users
             userRepository.save(admin);
             userRepository.save(moderator);
             userRepository.save(standard);
@@ -53,7 +50,6 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("=== Users already exist in database ===");
         }
         
-        // Print all users
         System.out.println("=== Database Users ===");
         userRepository.findAll().forEach(user -> {
             System.out.println("Email: " + user.getEmail() + ", Role: " + user.getRole());

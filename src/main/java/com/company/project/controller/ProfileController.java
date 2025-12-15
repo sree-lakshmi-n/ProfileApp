@@ -23,7 +23,6 @@ public class ProfileController {
     @Autowired
     private ProfileFieldDefRepository profileFieldDefRepository;
 
-    // Handles both moderator and standard saves. Redirect target is passed from form.
     @PostMapping("/profile/save")
     @Transactional
     public String saveProfile(@RequestParam Map<String, String> params,

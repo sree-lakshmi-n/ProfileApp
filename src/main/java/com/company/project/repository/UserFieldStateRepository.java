@@ -3,7 +3,9 @@ package com.company.project.repository;
 
 import com.company.project.model.UserFieldState;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,5 +21,7 @@ public interface UserFieldStateRepository extends JpaRepository<UserFieldState, 
     
     void deleteByUserIdAndFieldDefId(Long userId, Long fieldDefId);
     
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
     void deleteByFieldDefId(Long fieldDefId);
 }

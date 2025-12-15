@@ -15,6 +15,7 @@ import com.company.project.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -267,6 +268,7 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
     
     @DeleteMapping("/{id}")
     @ResponseBody
+    @Transactional
     public ResponseEntity<String> deleteFieldAjax(@PathVariable Long id) {
         try {
             ProfileFieldDef field = profileFieldDefRepository.findById(id)
@@ -274,7 +276,6 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
             
             String fieldName = field.getFieldName();
             
-            // Delete associated options first
             fieldOptionRepository.deleteByFieldDefId(id);
             
             // Delete user field states
@@ -282,6 +283,7 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
             
             // Delete field definition
             profileFieldDefRepository.deleteById(id);
+
             
             return ResponseEntity.ok("Field '" + fieldName + "' deleted successfully!");
             
