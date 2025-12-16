@@ -4,7 +4,6 @@ import com.company.project.model.*;
 import com.company.project.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,16 +19,16 @@ import java.util.*;
 public class AuthController {
     
     @Autowired
-    private ProfileFieldDefRepository profileFieldDefRepository;
+    private ProfileFieldDefRepository fieldDefRepo;
     
     @Autowired
-    private FieldOptionRepository fieldOptionRepository;
+    private FieldOptionRepository optionRepo;
     
     @Autowired
-    private UserProfileValueRepository userProfileValueRepository;
+    private UserProfileValueRepository profileValueRepo;
     
     @Autowired
-    private UserFieldStateRepository userFieldStateRepository;
+    private UserFieldStateRepository fieldStateRepo;
     
     @GetMapping("/login")
     public String loginPage() {
@@ -37,61 +36,26 @@ public class AuthController {
     }
     
     @GetMapping("/")
-    public String homePage() {
+    public String home() {
         return "redirect:/dashboard";
     }
     
     @GetMapping("/dashboard")
     public String dashboard() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         
-        if (authentication != null && authentication.isAuthenticated()) {
-            Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-            
-            if (!authorities.isEmpty()) {
-                String role = authorities.iterator().next().getAuthority();
-                
-                return switch (role) {
-                    case "ROLE_ADMIN" -> "redirect:/admin/dashboard";
-                    case "ROLE_MODERATOR" -> "redirect:/moderator/dashboard";
-                    case "ROLE_STANDARD" -> "redirect:/standard/dashboard";
-                    default -> "redirect:/login?error";
-                };
-            }
-        }
-        return "redirect:/login";
-    }
-    
-    private void checkForFieldChanges(User currentUser, String targetRole, Model model) {
-        Long userId = currentUser.getId();
-        List<ProfileFieldDef> fields = profileFieldDefRepository.findByTargetRole(targetRole);
-        List<String> changedFields = new ArrayList<>();
-        boolean hasFieldChanges = false;
-        
-        for (ProfileFieldDef field : fields) {
-            Optional<UserFieldState> userFieldStateOpt = userFieldStateRepository.findByUserIdAndFieldDefId(userId, field.getId());
-            
-            if (userFieldStateOpt.isPresent()) {
-                UserFieldState userFieldState = userFieldStateOpt.get();
-                if (!userFieldState.getLastSeenVersion().equals(field.getVersion())) {
-                    changedFields.add(field.getFieldName());
-                    hasFieldChanges = true;
-                    
-                    // Update user's last seen version
-                    userFieldState.setLastSeenVersion(field.getVersion());
-                    userFieldState.setHasChanges(true);
-                    userFieldState.setLastCheckedAt(LocalDateTime.now());
-                    userFieldStateRepository.save(userFieldState);
-                }
-            } else {
-                // First time seeing this field
-                UserFieldState newState = new UserFieldState(userId, field.getId(), field.getVersion());
-                userFieldStateRepository.save(newState);
-            }
+        if (auth == null || !auth.isAuthenticated()) {
+            return "redirect:/login";
         }
         
-        model.addAttribute("hasFieldChanges", hasFieldChanges);
-        model.addAttribute("changedFields", changedFields);
+        String role = auth.getAuthorities().iterator().next().getAuthority();
+        
+        return switch (role) {
+            case "ROLE_ADMIN" -> "redirect:/admin/dashboard";
+            case "ROLE_MODERATOR" -> "redirect:/moderator/dashboard";
+            case "ROLE_STANDARD" -> "redirect:/standard/dashboard";
+            default -> "redirect:/login?error";
+        };
     }
     
     @GetMapping("/admin/dashboard")
@@ -101,82 +65,24 @@ public class AuthController {
         model.addAttribute("username", auth.getName());
         model.addAttribute("role", "ADMIN");
         
-        List<ProfileFieldDef> fieldDefinitions = profileFieldDefRepository.findAll();
-        Comparator<ProfileFieldDef> comparator = Comparator
+        List<ProfileFieldDef> allFields = fieldDefRepo.findAll();
+        allFields.sort(Comparator
             .comparing(ProfileFieldDef::getTargetRole)
-            .thenComparing(ProfileFieldDef::getId);
-        List<ProfileFieldDef> sortedFields = fieldDefinitions.stream()
-            .sorted(comparator)
-            .toList();
-        model.addAttribute("fields", sortedFields);
+            .thenComparing(ProfileFieldDef::getId));
+        
+        model.addAttribute("fields", allFields);
         
         return "admin-dashboard";
     }
     
     @GetMapping("/moderator/dashboard")
     public String moderatorDashboard(Model model) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) auth.getPrincipal();
-        model.addAttribute("username", auth.getName());
-        model.addAttribute("role", "MODERATOR");
-        
-        // Check for field changes
-        checkForFieldChanges(currentUser, "MODERATOR", model);
-        
-        // Fetch only MODERATOR fields
-        List<ProfileFieldDef> moderatorFields = profileFieldDefRepository.findByTargetRole("MODERATOR");
-        List<ProfileFieldVM> vmList = moderatorFields.stream()
-            .map(f -> new ProfileFieldVM(
-                f.getId(), f.getFieldName(), f.getFieldType(),
-                f.getIsRequired(), f.getTargetRole(),
-                fieldOptionRepository.findByFieldDefId(f.getId())
-            ))
-            .toList();
-        model.addAttribute("fields", vmList);
-
-        // Load existing values
-        Long userId = currentUser.getId();
-        Map<Long, String> values = new HashMap<>();
-        List<UserProfileValue> rows = userProfileValueRepository.findByUserId(userId);
-        for (var row : rows) {
-            values.put(row.getFieldDefId(), row.getFieldValue());
-        }
-        model.addAttribute("values", values);
-        
-        return "moderator-dashboard";
+        return showRoleDashboard(model, "MODERATOR");
     }
     
     @GetMapping("/standard/dashboard")
     public String standardDashboard(Model model) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) auth.getPrincipal();
-        model.addAttribute("username", auth.getName());
-        model.addAttribute("role", "STANDARD");
-        
-        // Check for field changes
-        checkForFieldChanges(currentUser, "STANDARD", model);
-        
-        // Fetch only STANDARD fields
-        List<ProfileFieldDef> standardFields = profileFieldDefRepository.findByTargetRole("STANDARD");
-        List<ProfileFieldVM> vmList = standardFields.stream()
-            .map(f -> new ProfileFieldVM(
-                f.getId(), f.getFieldName(), f.getFieldType(),
-                f.getIsRequired(), f.getTargetRole(),
-                fieldOptionRepository.findByFieldDefId(f.getId())
-            ))
-            .toList();
-        model.addAttribute("fields", vmList);
-
-        // Load existing values
-        Long userId = currentUser.getId();
-        Map<Long, String> values = new HashMap<>();
-        List<UserProfileValue> rows = userProfileValueRepository.findByUserId(userId);
-        for (var row : rows) {
-            values.put(row.getFieldDefId(), row.getFieldValue());
-        }
-        model.addAttribute("values", values);
-        
-        return "standard-dashboard";
+        return showRoleDashboard(model, "STANDARD");
     }
     
     @GetMapping("/access-denied")
@@ -185,20 +91,108 @@ public class AuthController {
     }
     
     @PostMapping("/acknowledge-changes")
-    public String acknowledgeChanges(@RequestParam("fieldIds") List<Long> fieldIds, RedirectAttributes redirectAttributes) {
+    public String acknowledgeChanges(@RequestParam List<Long> fieldIds, RedirectAttributes redirectAttributes) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) auth.getPrincipal();
         
-        for (Long fieldDefId : fieldIds) {
-            Optional<UserFieldState> userFieldStateOpt = userFieldStateRepository.findByUserIdAndFieldDefId(currentUser.getId(), fieldDefId);
-            if (userFieldStateOpt.isPresent()) {
-                UserFieldState userFieldState = userFieldStateOpt.get();
-                userFieldState.setHasChanges(false);
-                userFieldStateRepository.save(userFieldState);
+        for (Long fieldId : fieldIds) {
+            Optional<UserFieldState> stateOpt = fieldStateRepo
+                .findByUserIdAndFieldDefId(currentUser.getId(), fieldId);
+            
+            if (stateOpt.isPresent()) {
+                UserFieldState state = stateOpt.get();
+                state.setHasChanges(false);
+                fieldStateRepo.save(state);
             }
         }
         
-        redirectAttributes.addFlashAttribute("success", "Changes acknowledged!");
+        redirectAttributes.addFlashAttribute("message", "Changes acknowledged!");
         return "redirect:/dashboard";
+    }
+    
+
+    private String showRoleDashboard(Model model, String role) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+        
+        model.addAttribute("username", auth.getName());
+        model.addAttribute("role", role);
+        
+        checkFieldChanges(currentUser, role, model);
+        
+        List<ProfileFieldDef> roleFields = fieldDefRepo.findByTargetRole(role);
+        roleFields.sort(Comparator.comparing(ProfileFieldDef::getId));
+
+        model.addAttribute("fields", createFieldViewModels(roleFields));
+        model.addAttribute("values", getUserFieldValues(currentUser.getId()));
+        
+        return role.toLowerCase() + "-dashboard";
+    }
+    
+    private List<ProfileFieldVM> createFieldViewModels(List<ProfileFieldDef> fields) {
+        List<ProfileFieldVM> result = new ArrayList<>();
+        
+        for (ProfileFieldDef field : fields) {
+            List<FieldOption> options = optionRepo.findByFieldDefId(field.getId());
+            
+            ProfileFieldVM vm = new ProfileFieldVM(
+                field.getId(),
+                field.getFieldName(),
+                field.getFieldType(),
+                field.getIsRequired(),
+                field.getTargetRole(),
+                options
+            );
+            
+            result.add(vm);
+        }
+        
+        return result;
+    }
+    
+    private Map<Long, String> getUserFieldValues(Long userId) {
+        Map<Long, String> values = new HashMap<>();
+        
+        List<UserProfileValue> userValues = profileValueRepo.findByUserId(userId);
+        for (UserProfileValue value : userValues) {
+            values.put(value.getFieldDefId(), value.getFieldValue());
+        }
+        
+        return values;
+    }
+    
+    private void checkFieldChanges(User user, String role, Model model) {
+        Long userId = user.getId();
+        List<ProfileFieldDef> fields = fieldDefRepo.findByTargetRole(role);
+        
+        List<String> changedFieldNames = new ArrayList<>();
+        boolean hasChanges = false;
+        
+        for (ProfileFieldDef field : fields) {
+            Optional<UserFieldState> stateOpt = fieldStateRepo
+                .findByUserIdAndFieldDefId(userId, field.getId());
+            
+            if (stateOpt.isPresent()) {
+                UserFieldState state = stateOpt.get();
+                
+                if (!state.getLastSeenVersion().equals(field.getVersion())) {
+                    changedFieldNames.add(field.getFieldName());
+                    hasChanges = true;
+                    
+                    state.setLastSeenVersion(field.getVersion());
+                    state.setHasChanges(true);
+                    state.setLastCheckedAt(LocalDateTime.now());
+                    fieldStateRepo.save(state);
+                }
+            } else {
+                UserFieldState newState = new UserFieldState(
+                    userId, field.getId(), field.getVersion()
+                );
+                fieldStateRepo.save(newState);
+            }
+        }
+        
+        model.addAttribute("hasFieldChanges", hasChanges);
+        model.addAttribute("changedFields", changedFieldNames);
     }
 }

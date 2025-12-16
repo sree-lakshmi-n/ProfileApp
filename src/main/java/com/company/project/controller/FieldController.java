@@ -46,13 +46,11 @@ public class FieldController {
     @Autowired
     private UserRepository userRepository;
     
-    // List of allowed field types
     private final List<String> FIELD_TYPES = Arrays.asList(
         "TEXT", "NUMBER", "EMAIL", "PHONE", "DATE", 
         "DROPDOWN", "TEXTAREA", "BOOLEAN"
     );
     
-    // List of allowed roles
     private final List<String> TARGET_ROLES = Arrays.asList(
         "MODERATOR", "STANDARD"
     );
@@ -73,7 +71,6 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
                        @RequestParam(value = "displayLabels[]", required = false) List<String> displayLabels,
                        RedirectAttributes redirectAttributes) {
     try {
-        // Check if field with same name and role already exists
         List<ProfileFieldDef> existingFields = profileFieldDefRepository.findAll();
         boolean fieldExists = existingFields.stream()
             .anyMatch(f -> f.getFieldName().equalsIgnoreCase(fieldData.getFieldName()) 
@@ -90,18 +87,16 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
             fieldData.setIsRequired(false);
         }
         
-        // Save the new field
         ProfileFieldDef savedField = profileFieldDefRepository.save(fieldData);
         markFieldAsChangedForRoleUsers(savedField);
 
         
-        // Save options if field type is DROPDOWN
         if ("DROPDOWN".equals(savedField.getFieldType()) && optionValues != null && displayLabels != null) {
             saveFieldOptions(savedField.getId(), optionValues, displayLabels);
         }
         
         redirectAttributes.addFlashAttribute("success", 
-            "Field '" + savedField.getFieldName() + "' added successfully!");
+            "Field '" + savedField.getFieldName() + "' added successfully for " + savedField.getTargetRole() + " role!");
         
     } catch (Exception e) {
         redirectAttributes.addFlashAttribute("error", 
@@ -137,7 +132,6 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
         ProfileFieldDef existingField = profileFieldDefRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Field not found with id: " + id));
         
-        // Check if name changed and conflicts with existing field
         if (!existingField.getFieldName().equalsIgnoreCase(updatedField.getFieldName()) 
             || !existingField.getTargetRole().equals(updatedField.getTargetRole())) {
             
@@ -155,11 +149,9 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
             }
         }
         
-        // Check if field type changed
         boolean fieldTypeChanged = !existingField.getFieldType().equals(updatedField.getFieldType());
         boolean isRequiredChanged = existingField.getIsRequired() != updatedField.getIsRequired();
         
-        // Update field properties
         existingField.setFieldName(updatedField.getFieldName());
         existingField.setFieldType(updatedField.getFieldType());
         existingField.setTargetRole(updatedField.getTargetRole());
@@ -167,41 +159,33 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
         
         existingField = profileFieldDefRepository.save(existingField);
         
-        // Handle options for DROPDOWN type
         if ("DROPDOWN".equals(updatedField.getFieldType())) {
-            // Delete options marked for deletion
             if (deleteOptionIds != null && !deleteOptionIds.isEmpty()) {
                 deleteOptionIds.forEach(optionId -> fieldOptionRepository.deleteById(optionId));
             }
             
-            // Save new/updated options
             if (optionValues != null && displayLabels != null) {
                 saveFieldOptions(id, optionValues, displayLabels);
             }
         } else {
-            // If field type changed from DROPDOWN to something else, delete all options
             if (fieldTypeChanged && "DROPDOWN".equals(existingField.getFieldType())) {
                 fieldOptionRepository.deleteByFieldDefId(id);
             }
         }
         
-        // If field type changed or isRequired changed, update existing user values
         if (fieldTypeChanged || isRequiredChanged) {
             updateUserValuesForFieldChange(existingField, fieldTypeChanged);
         }
         
-        // Mark field as changed for all users of this target role
         markFieldAsChangedForRoleUsers(existingField);
         
-        redirectAttributes.addFlashAttribute("success", "Field updated successfully!");
+        redirectAttributes.addFlashAttribute("success", "Field " + updatedField.getFieldName() + " of " + updatedField.getTargetRole() + " role updated successfully!");
         return "redirect:/admin/dashboard";
     }
 
     private void saveFieldOptions(Long fieldDefId, List<String> optionValues, List<String> displayLabels) {
-        // Clear existing options first
         fieldOptionRepository.deleteByFieldDefId(fieldDefId);
         
-        // Save new options
         for (int i = 0; i < optionValues.size(); i++) {
             if (optionValues.get(i) != null && !optionValues.get(i).trim().isEmpty()) {
                 FieldOption option = new FieldOption(
@@ -219,10 +203,8 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
         
         for (UserProfileValue value : existingValues) {
             if (fieldTypeChanged) {
-                // Clear value for type change
                 value.setFieldValue(getDefaultValueForFieldType(field));
             } else if (field.getIsRequired() && (value.getFieldValue() == null || value.getFieldValue().isEmpty())) {
-                // Set default value if field became required and is empty
                 value.setFieldValue(getDefaultValueForFieldType(field));
             }
             userProfileValueRepository.save(value);
@@ -239,7 +221,6 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
     }
     
    private void markFieldAsChangedForRoleUsers(ProfileFieldDef field) {
-    // Get all users with the target role
     List<User> users = userRepository.findAll().stream()
         .filter(user -> user.getRole().name().equals(field.getTargetRole()))
         .collect(Collectors.toList());
@@ -251,12 +232,10 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
         UserFieldState state;
         if (existingState.isPresent()) {
             state = existingState.get();
-            // If version is different, mark as changed
             if (!state.getLastSeenVersion().equals(field.getVersion())) {
                 state.setHasChanges(true);
             }
         } else {
-            // New field for this user
             state = new UserFieldState(user.getId(), field.getId(), field.getVersion() - 1);
             state.setHasChanges(true);
         }
@@ -275,17 +254,18 @@ public String saveField(@ModelAttribute ProfileFieldDef fieldData,
                 .orElseThrow(() -> new RuntimeException("Field not found"));
             
             String fieldName = field.getFieldName();
+            System.out.println("----here");
+            System.out.println(fieldName);
+            String role = field.getTargetRole();
             
             fieldOptionRepository.deleteByFieldDefId(id);
             
-            // Delete user field states
             userFieldStateRepository.deleteByFieldDefId(id);
             
-            // Delete field definition
             profileFieldDefRepository.deleteById(id);
 
             
-            return ResponseEntity.ok("Field '" + fieldName + "' deleted successfully!");
+            return ResponseEntity.ok("Field '" + fieldName + "' deleted successfully for " + role + " role!");
             
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());

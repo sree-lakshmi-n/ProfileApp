@@ -2,6 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -138,11 +139,8 @@
             border-color: #f5c6cb;
         }
         .fade-out {
-            animation: fadeOut 0.5s forwards;
-        }
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
         }
         .loading {
             display: inline-block;
@@ -171,6 +169,9 @@
         .section-header h2 {
             margin: 0;
         }
+        .fade-enter-active {
+            transition: opacity 0.5s;
+        }
     </style>
 </head>
 <body>
@@ -181,18 +182,14 @@
     </div>
     
     <div class="content">
-        <!-- Success Message Area (for AJAX messages) -->
         <div id="ajaxAlert" style="display: none;"></div>
         
-        <!-- Original Success/Error Messages (for page reload) -->
         <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
         <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
         
         <div class="section-header">
-            <h2>Profile Field Management</h2>
             <a href="/admin/fields/add" class="btn btn-success">+ Add New Field</a>
         </div>
-        <p>Configure dynamic profile fields for different user roles:</p>
         
         <table class="fields-table">
             <thead>
@@ -205,7 +202,7 @@
                 </tr>
             </thead>
             <tbody id="fieldsTableBody">
-                <tr th:each="field : ${fields}">
+                <tr th:each="field : ${fields}" th:id="'field-row-' + ${field.id}">
                     <td th:text="${field.fieldName}">Field Name</td>
                     <td>
                         <span class="type-badge" th:text="${field.fieldType}">Type</span>
@@ -223,15 +220,14 @@
                               class="required-no">No</span>
                     </td>
                     <td>
-                        <!-- Edit button -->
                         <a th:href="@{/admin/fields/edit/{id}(id=${field.id})}" 
                            class="btn btn-primary">Edit</a>
-                        <!-- Delete button with data attributes -->
                         <button type="button" 
                                 class="btn btn-danger delete-btn"
                                 th:data-id="${field.id}"
                                 th:data-name="${field.fieldName}"
-                                th:data-role="${field.targetRole}">
+                                th:data-role="${field.targetRole}"
+                                th:onclick="handleDeleteClick(this)">
                             Delete
                         </button>
                     </td>
@@ -245,137 +241,143 @@
     </div>
 
     <script>
-        // Wait for DOM to be fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Attach click event to all delete buttons
-            const deleteButtons = document.querySelectorAll('.delete-btn');
+        const AdminDashboard = {
+            init() {
+                this.setupAutoHideMessages();
+                this.updateRowIds();
+            },
             
-            deleteButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const fieldId = this.getAttribute('data-id');
-                    const fieldName = this.getAttribute('data-name');
-                    const fieldRole = this.getAttribute('data-role');
-                    
-                    deleteField(fieldId, fieldName, fieldRole, this);
-                });
-            });
-        });
-        
-        function deleteField(fieldId, fieldName, fieldRole, deleteButton) {
-            // Show confirmation dialog
-            const message = `Are you sure you want to delete the field "${fieldName}" for ${fieldRole} role?\n\n` +
-                           `This will permanently delete:\n` +
-                           `• The field definition\n` +
-                           `• All user values for this field\n` +
-                           `• Any dropdown options\n\n` +
-                           `This action cannot be undone!`;
+            handleDeleteClick(button) {
+                const fieldId = button.getAttribute('data-id');
+                const fieldName = button.getAttribute('data-name');
+                const fieldRole = button.getAttribute('data-role');
+                
+                this.showDeleteConfirmation(fieldId, fieldName, fieldRole, button);
+            },
             
-            if (!confirm(message)) {
-                return; // User cancelled
-            }
+            showDeleteConfirmation(fieldId, fieldName, fieldRole, button) {
+                const message = `Are you sure you want to delete the field "${fieldName}" for ${fieldRole} role?`;
+                
+                if (!confirm(message)) return;
+                
+                this.deleteField(fieldId, button);
+            },
             
-            // Save original button text and disable button
-            const originalText = deleteButton.innerHTML;
-            deleteButton.disabled = true;
-            deleteButton.innerHTML = '<span class="loading"></span> Deleting...';
-            
-            // Send AJAX DELETE request
-            fetch(`/admin/fields/${fieldId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                // Check if response is OK (status 200-299)
-                if (response.ok) {
-                    return response.text();
-                } else {
-                    // Try to get error message from response
-                    return response.text().then(errorText => {
-                        throw new Error(errorText || 'Delete failed with status: ' + response.status);
+            async deleteField(fieldId, button) {
+                const originalText = button.innerHTML;
+                button.disabled = true;
+                button.innerHTML = '<span class="loading"></span> Deleting...';
+                
+                try {
+                    const response = await fetch(`/admin/fields/${fieldId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
                     });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    }
+                    
+                    const successMessage = await response.text();
+                    this.removeFieldRow(fieldId);
+                    this.showAlert(successMessage, 'success');
+                    this.checkIfTableEmpty();
+                    
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                    this.showAlert(`Failed to delete field: ${error.message}`, 'error');
                 }
-            })
-            .then(successMessage => {
-                // Success - remove the table row
-                const tableRow = deleteButton.closest('tr');
-                tableRow.classList.add('fade-out');
-                
-                // Wait for fade animation to complete, then remove row
-                setTimeout(() => {
-                    tableRow.remove();
-                    
-                    // Show success message
-                    showAlert(successMessage, 'success');
-                    
-                    // Check if table is now empty
-                    checkIfTableEmpty();
-                }, 500);
-            })
-            .catch(error => {
-                // Error - reset button and show error
-                deleteButton.disabled = false;
-                deleteButton.innerHTML = originalText;
-                
-                console.error('Delete error:', error);
-                showAlert('Failed to delete field: ' + error.message, 'error');
-            });
-        }
-        
-        function showAlert(message, type) {
-            // Remove any existing AJAX alerts
-            const existingAlert = document.getElementById('ajaxAlert');
-            if (existingAlert) {
-                existingAlert.style.display = 'none';
-                existingAlert.className = '';
-                existingAlert.textContent = '';
-            }
+            },
             
-            // Create and show new alert
-            const alertDiv = document.getElementById('ajaxAlert');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
-            alertDiv.style.display = 'block';
-            
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                alertDiv.style.opacity = '0';
+            removeFieldRow(fieldId) {
+                const row = document.getElementById(`field-row-${fieldId}`);
+                if (!row) return;
+                
+                row.classList.add('fade-out');
+                
                 setTimeout(() => {
-                    alertDiv.style.display = 'none';
-                    alertDiv.style.opacity = '1';
-                }, 500);
-            }, 5000);
-        }
-        
-        function checkIfTableEmpty() {
-            const tableBody = document.getElementById('fieldsTableBody');
-            if (tableBody && tableBody.children.length === 0) {
-                // Add empty state message
-                const emptyState = document.createElement('tr');
-                emptyState.innerHTML = `
-                    <td colspan="5" class="empty-state">
-                        <p>No field definitions found. <a href="/admin/fields/add">Create your first field</a></p>
-                    </td>
-                `;
-                tableBody.appendChild(emptyState);
-            }
-        }
-        
-        // Auto-hide page reload messages after 5 seconds
-        setTimeout(() => {
-            const pageAlerts = document.querySelectorAll('.alert[th\\:if]');
-            pageAlerts.forEach(alert => {
-                alert.style.transition = 'opacity 0.5s';
-                alert.style.opacity = '0';
-                setTimeout(() => {
-                    if (alert.parentNode) {
-                        alert.style.display = 'none';
+                    if (row.parentNode) {
+                        row.remove();
                     }
                 }, 500);
-            });
-        }, 5000);
+            },
+            
+            showAlert(message, type) {
+                const alertDiv = document.getElementById('ajaxAlert');
+                if (!alertDiv) return;
+                
+                alertDiv.style.display = 'none';
+                alertDiv.className = '';
+                
+                alertDiv.className = `alert alert-${type}`;
+                alertDiv.textContent = message;
+                alertDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    if (alertDiv.style.display === 'block') {
+                        alertDiv.style.opacity = '0';
+                        setTimeout(() => {
+                            alertDiv.style.display = 'none';
+                            alertDiv.style.opacity = '1';
+                        }, 500);
+                    }
+                }, 5000);
+            },
+            
+            checkIfTableEmpty() {
+                const tableBody = document.getElementById('fieldsTableBody');
+                if (!tableBody) return;
+                
+                const hasRows = tableBody.querySelector('tr:not(.empty-state)');
+                
+                if (!hasRows) {
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.className = 'empty-state-row';
+                    emptyRow.innerHTML = `
+                        <td colspan="5" class="empty-state">
+                            <p>No field definitions found. <a href="/admin/fields/add">Create your first field</a></p>
+                        </td>
+                    `;
+                    tableBody.appendChild(emptyRow);
+                } else {
+                    const existingEmptyState = tableBody.querySelector('.empty-state-row');
+                    if (existingEmptyState) {
+                        existingEmptyState.remove();
+                    }
+                }
+            },
+            
+            updateRowIds() {
+                const rows = document.querySelectorAll('#fieldsTableBody tr');
+                rows.forEach((row, index) => {
+                    const fieldId = row.querySelector('.delete-btn')?.getAttribute('data-id');
+                    if (fieldId) {
+                        row.id = `field-row-${fieldId}`;
+                    }
+                });
+            },
+            
+            setupAutoHideMessages() {
+                setTimeout(() => {
+                    const pageAlerts = document.
+                    querySelectorAll('.content .alert:not(#ajaxAlert)')
+                    pageAlerts.forEach(alert => {
+                        alert.style.opacity = '0';
+                        setTimeout(() => {
+                            alert.style.display = 'none';
+                        }, 150);
+                    });
+                }, 1500);
+            }
+        };
+        
+        document.addEventListener('DOMContentLoaded', () => AdminDashboard.init());
+        
+        window.handleDeleteClick = (button) => AdminDashboard.handleDeleteClick(button);
     </script>
 </body>
 </html>

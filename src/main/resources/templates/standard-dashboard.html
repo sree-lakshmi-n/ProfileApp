@@ -123,9 +123,7 @@
                     <button type="submit" class="btn btn-warning btn-sm">Acknowledge Changes</button>
                 </form>
             </div>
-            <!-- Add form to persist values -->
             <form th:action="@{/profile/save}" method="post">
-                <!-- Redirect back to standard dashboard after save -->
                 <input type="hidden" name="redirectTo" value="/standard/dashboard" />
 
                 <div class="profile-fields">
@@ -189,12 +187,14 @@
                                     th:text="${values[field.id]}"
                                     placeholder="Enter text"></textarea>
 
-                                <input th:case="'BOOLEAN'" type="hidden"
-                                    th:name="${'field_' + field.id}" value="false" />
-                                <input th:case="'BOOLEAN'" type="checkbox"
-                                    th:name="${'field_' + field.id}" th:value="true"
-                                    th:id="${'field_' + field.id}"
-                                    th:checked="${values[field.id]} == 'true'" />
+                                <div th:case="'BOOLEAN'" class="form-check form-switch">
+                                     <input type="checkbox"
+                                        th:name="${'field_' + field.id}" th:value="true"
+                                        th:id="${'field_' + field.id}"
+                                        th:checked="${#bools.isTrue(values[field.id])}" class="form-check-input" />
+                                    <input type="hidden"
+                                        th:name="${'field_' + field.id}" value="false" />
+                                </div>
 
                                 <span th:case="*">Unsupported field type</span>
                             </div>
@@ -207,32 +207,28 @@
                     </div>
                 </div>
 
-                <!-- Submit -->
                 <button class="edit-btn" type="submit">Save</button>
             </form>
         </div>
     </div>
     <script th:inline="javascript">
-    /*<![CDATA[*/
     document.addEventListener('DOMContentLoaded', function() {
-        const hasChanges = /*[[${hasFieldChanges}]]*/ false;
-        const changedFields = /*[[${changedFields}]]*/ [];
+        const hasChanges = false;
+        const changedFields = [];
         
         if (hasChanges && changedFields.length > 0) {
-            // Show browser alert
             const fieldList = changedFields.join(', ');
             alert('ALERT: Profile fields have been updated by the administrator.\n\n' +
                   'Updated fields: ' + fieldList + '\n\n' +
                   'Please review your profile information.');
             
-            // Make the alert flash for attention
             const alertDiv = document.querySelector('.alert-warning');
             if (alertDiv) {
                 let flashCount = 0;
                 const flashInterval = setInterval(() => {
                     alertDiv.style.backgroundColor = flashCount % 2 === 0 ? '#fff3cd' : '#ffc107';
                     flashCount++;
-                    if (flashCount >= 6) { // Flash 3 times
+                    if (flashCount >= 6) { 
                         clearInterval(flashInterval);
                         alertDiv.style.backgroundColor = '#fff3cd';
                     }
@@ -240,7 +236,6 @@
             }
         }
     });
-    /*]]>*/
 </script>
 </body>
 </html>
